@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0-*",
+  "buildOptions": {
+    "emitEntryPoint": true
+  },
+  "dependencies": {
+    "Microsoft.CodeAnalysis": "2.0.0-beta1",
+    "Microsoft.Net.Compilers": "2.0.0-beta1"
+  },
+  "frameworks": {
+    "net45": { }
+  }
+}
