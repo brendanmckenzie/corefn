@@ -1,49 +1,85 @@
-﻿using System;
-using System.Reflection;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreFn.Bootstrap
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
-            var loggerFactory = new LoggerFactory();
-            var log = loggerFactory.CreateLogger<Program>();
+            Run().Wait();
+        }
 
-            loggerFactory.AddConsole();
-
-            var serviceCollection = new ServiceCollection();
-            serviceCollection.AddSingleton(typeof(ILoggerFactory), loggerFactory);
-
-            log.LogInformation("CoreFn Bootstrap");
-
-            var assemblyName = args[0];
-
-            log.LogInformation($"Running function: {assemblyName}");
-
-            var assm = Assembly.Load(new AssemblyName(assemblyName));
-            var entryPoints = assm.GetTypes().Where(ent => ent.Name == "EntryPoint");
-
-            var entryPoint = entryPoints.Single();
-
-            serviceCollection.AddScoped(entryPoint, entryPoint);
-
-            var serviceProvider = serviceCollection.BuildServiceProvider();
-
-            var instance = serviceProvider.GetService(entryPoint);
-
-            var runFn = entryPoint.GetMethod("Run");
-            if (runFn.GetParameters().Any())
+        public static async Task Run()
+        {
+            var listener = new TcpListener(IPAddress.Any, 6543);
+            listener.Start();
+            Console.WriteLine("Listening on port 6543");
+            while (true)
             {
-                runFn.Invoke(instance, new object[] { Environment.GetEnvironmentVariable("COREFN_PARAM") });
+                var worker = new Worker(await listener.AcceptTcpClientAsync());
+
+                RunAsyncThread(worker.Run);
             }
-            else
+        }
+
+        public static void RunAsyncThread(Func<Task> fn)
+        {
+            new Thread(async () => { await fn(); }).Start();
+        }
+    }
+
+    public class Worker
+    {
+        static short CommandHeader = BitConverter.ToInt16(new byte[] { 0xA0, 0x0F }, 0);
+        readonly TcpClient _client;
+        public Worker(TcpClient client)
+        {
+            _client = client;
+        }
+
+        public async Task Run()
+        {
+            Console.WriteLine($"Client connected");
+
+            var stream = _client.GetStream();
+            while (_client.Connected)
             {
-                runFn.Invoke(instance, null);
+                var buffer = new byte[1024];
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
+
+                if (read > 0)
+                {
+                    for (var i = 0; i < read; i++)
+                    {
+                        if (i + 6 < buffer.Length)
+                        {
+                            var header = BitConverter.ToInt16(buffer, 0);
+                            if (header == CommandHeader)
+                            {
+                                var command = BitConverter.ToInt32(buffer, 3);
+
+                                Proxy.Pass(command);
+                            }
+                        }
+                    }
+
+                    Console.WriteLine($"{read}: {BitConverter.ToString(buffer, 0, read)}");
+                }
             }
+            Console.WriteLine($"Client disconnected");
+        }
+    }
+
+    public static class Proxy
+    {
+        public static void Pass(int command)
+        {
+            Console.WriteLine($"Execute command: {command}");
+            // switch statement goes here
         }
     }
 }
