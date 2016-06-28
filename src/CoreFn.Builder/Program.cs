@@ -45,11 +45,11 @@ namespace CoreFn.Builder
             }
             else if (method.ReturnType == typeof(string))
             {
-                return methodCall = $"var ret = {methodCall}; callback(ret)";
+                return methodCall = $"var ret = {methodCall}; await callback(ret)";
             }
             else
             {
-                return methodCall = $"var ret = {methodCall}; callback(JsonConvert.SerializeObject(ret))";
+                return methodCall = $"var ret = {methodCall}; await callback(JsonConvert.SerializeObject(ret))";
             }
         }
 
@@ -110,13 +110,14 @@ namespace CoreFn.Builder
 
         const string ProxyClass = @"
 using System;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace CoreFn.Bootstrap
 {
     public static class Proxy
     {
-        public static void Pass(int command, string input, Action<string> callback)
+        public static async Task Pass(int command, string input, Func<string, Task> callback)
         {
             switch (command)
             {

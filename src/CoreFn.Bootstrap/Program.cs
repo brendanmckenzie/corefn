@@ -55,24 +55,50 @@ namespace CoreFn.Bootstrap
             Log($"Client connected");
 
             var stream = _client.GetStream();
-            var totalBuffer = Enumerable.Empty<byte>();
-
-            var read = 0;
-            var buffer = new byte[1024];
-            while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            try
             {
-                totalBuffer = totalBuffer.Concat(buffer.Take(read));
-                Log($"{read}: {BitConverter.ToString(buffer, 0, read)}");
+                var totalBuffer = Enumerable.Empty<byte>();
+
+                var read = 0;
+                var buffer = new byte[1024];
+                while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    totalBuffer = totalBuffer.Concat(buffer.Take(read));
+                    if (BitConverter.ToInt32(totalBuffer.Skip(totalBuffer.Count() - 4).Take(4).ToArray(), 0) == 0)
+                    {
+                        break;
+                    }
+                    Log($"{read}: {BitConverter.ToString(buffer, 0, read)}");
+                }
+
+                if (totalBuffer.ElementAt(0) == 0x0F && totalBuffer.ElementAt(1) == 0x0A)
+                {
+                    var command = BitConverter.ToInt32(totalBuffer.Skip(2).Take(4).ToArray(), 0);
+                    var request = Encoding.UTF8.GetString(totalBuffer.Skip(8).ToArray());
+
+                    Log($"cmd: {command}. request: {request}");
+
+                    try
+                    {
+                        await Proxy.Pass(command, request, async (response) =>
+                        {
+                            Log($"writing response: {response}");
+
+                            var responseBuffer = Encoding.UTF8.GetBytes(response);
+
+                            await stream.WriteAsync(responseBuffer, 0, responseBuffer.Length);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Exception: {ex.Message}");
+                        throw;
+                    }
+                }
             }
-
-            if (totalBuffer.ElementAt(0) == 0x0F && totalBuffer.ElementAt(1) == 0x0A)
+            finally
             {
-                var command = BitConverter.ToInt32(totalBuffer.Skip(2).Take(4).ToArray(), 0);
-                var data = Encoding.UTF8.GetString(totalBuffer.Skip(8).ToArray());
-
-                Log($"cmd: {command}. data: {data}");
-
-                // Proxy.Pass(command);
+                stream.Dispose();
             }
 
             Log($"Client disconnected");

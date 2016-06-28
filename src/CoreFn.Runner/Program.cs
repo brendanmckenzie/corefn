@@ -24,15 +24,33 @@ namespace CoreFn.Runner
 
                 var stream = client.GetStream();
 
-                var buffer = Header
-                    .Concat(BitConverter.GetBytes(10)) // command
+                var packet = Header
+                    .Concat(BitConverter.GetBytes(2147483647)) // command
                     .Concat(Footer)
-                    .Concat(Encoding.UTF8.GetBytes("hello"))
+                    .Concat(Encoding.UTF8.GetBytes("{\"A\":1,\"B\":2}"))
+                    .Concat(BitConverter.GetBytes(0))
                     .ToArray();
 
-                // System.Threading.Thread.Sleep(1000);
+                await stream.WriteAsync(packet, 0, packet.Length);
 
-                await stream.WriteAsync(buffer.ToArray(), 0, buffer.Count());
+                // System.Threading.Thread.Sleep(500);
+
+                await stream.FlushAsync();
+
+                while (!stream.DataAvailable) {}
+
+                // if (stream.DataAvailable)
+                {
+                    var read = 0;
+                    var buffer = new byte[1024];
+                    var totalBuffer = Enumerable.Empty<byte>();
+                    while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        totalBuffer = totalBuffer.Concat(buffer.Take(read).ToArray());
+                    }
+
+                    Console.WriteLine($"Response: {Encoding.UTF8.GetString(totalBuffer.ToArray())}");
+                }
             }
         }
     }
