@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -6,6 +8,8 @@ namespace CoreFn.Runner
 {
     public static class Program
     {
+        static byte[] Header = new byte[] { 0x0F, 0x0A };
+        static byte[] Footer = new byte[] { 0xFF, 0xAA };
         public static void Main(string[] args)
         {
             Run().Wait();
@@ -19,9 +23,14 @@ namespace CoreFn.Runner
 
                 var stream = client.GetStream();
 
-                var buffer = new byte[] { 0x00, 0x01, 0x02, 0x04 };
+                var buffer = Header
+                    .Concat(BitConverter.GetBytes(10))
+                    .Concat(Footer)
+                    .ToArray();
 
-                await stream.WriteAsync(buffer, 0, 4);
+                // System.Threading.Thread.Sleep(1000);
+
+                await stream.WriteAsync(buffer.ToArray(), 0, buffer.Count());
             }
         }
     }

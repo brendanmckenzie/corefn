@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -34,52 +35,53 @@ namespace CoreFn.Bootstrap
 
     public class Worker
     {
-        static short CommandHeader = BitConverter.ToInt16(new byte[] { 0xA0, 0x0F }, 0);
         readonly TcpClient _client;
+        readonly Guid _id = Guid.NewGuid();
+
         public Worker(TcpClient client)
         {
             _client = client;
         }
 
+        void Log(string message)
+            => Console.WriteLine($"{DateTime.Now.Ticks} {_id}: {message}");
+
         public async Task Run()
         {
-            Console.WriteLine($"Client connected");
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Log($"Client connected");
 
             var stream = _client.GetStream();
-            while (_client.Connected)
+            var buffer = new byte[1024];
+
+            using (var cts = new CancellationTokenSource(500))
+            using (cts.Token.Register(() => stream.Dispose()))
             {
-                var buffer = new byte[1024];
-                var read = await stream.ReadAsync(buffer, 0, buffer.Length);
-
-                if (read > 0)
+                try
                 {
-                    for (var i = 0; i < read; i++)
-                    {
-                        if (i + 6 < buffer.Length)
-                        {
-                            var header = BitConverter.ToInt16(buffer, 0);
-                            if (header == CommandHeader)
-                            {
-                                var command = BitConverter.ToInt32(buffer, 3);
+                    var read = await stream.ReadAsync(buffer, 0, buffer.Length);
 
-                                Proxy.Pass(command);
-                            }
+                    if (read == 8)
+                    {
+                        if (buffer[0] == 0x0F && buffer[1] == 0x0A)
+                        {
+                            var command = BitConverter.ToInt32(buffer, 2);
+
+                            Proxy.Pass(command);
                         }
                     }
 
-                    Console.WriteLine($"{read}: {BitConverter.ToString(buffer, 0, read)}");
+                    Log($"{read}: {BitConverter.ToString(buffer, 0, read)}");
+                }
+                catch (ObjectDisposedException)
+                {
+                    Log("Read timeout");
                 }
             }
-            Console.WriteLine($"Client disconnected");
-        }
-    }
-
-    public static class Proxy
-    {
-        public static void Pass(int command)
-        {
-            Console.WriteLine($"Execute command: {command}");
-            // switch statement goes here
+            Log($"Client disconnected");
+            stopwatch.Stop();
+            Log($"Elapsed ms: {stopwatch.ElapsedMilliseconds}");
         }
     }
 }
