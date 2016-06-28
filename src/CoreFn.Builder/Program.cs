@@ -16,6 +16,9 @@ namespace CoreFn.Builder
         public static void Main(string[] args)
         {
             var files = Directory.GetFiles(args[0], "*.dll");
+            var dest = Path.GetFullPath(args[1]);
+
+            Directory.CreateDirectory(dest);
 
             var functions = files
                 .Where(ent => !new[] { "CoreFn" }.Contains(Path.GetFileNameWithoutExtension(ent)))
@@ -36,10 +39,11 @@ namespace CoreFn.Builder
                 throw new InvalidOperationException("No exported functions found");
             }
 
-            var classStr = ProxyClass.Replace("$switch$", string.Join(Environment.NewLine, functions.Select(ent => $"{new string(' ', 16)}case {ent.Index}: {ent.Type.FullName}.{ent.Method.Name}();")));
-            Console.WriteLine("Proxy class");
-            Console.WriteLine(classStr);
-            Console.WriteLine();
+            var classStr = ProxyClass.Replace("$switch$", string.Join(Environment.NewLine, functions.Select(ent => $"{new string(' ', 16)}case {ent.Index}: new {ent.Type.FullName}().{ent.Method.Name}(); break;")));
+            Console.WriteLine("Writing Proxy class");
+            // Console.WriteLine(classStr);
+            // Console.WriteLine();
+            File.WriteAllText(Path.Combine(dest, "Proxy.cs"), classStr);
 
             var manifest = new Manifest
             {
@@ -50,8 +54,9 @@ namespace CoreFn.Builder
                     Parameters = ent.Method.GetParameters().Select(p => new ParameterSummary { Name = p.Name, Type = p.ParameterType.Name })
                 }).ToArray()
             };
-            Console.WriteLine("Manifest");
-            Console.WriteLine(JsonConvert.SerializeObject(manifest, Formatting.Indented));
+            Console.WriteLine("Writing Manifest");
+            // Console.WriteLine(JsonConvert.SerializeObject(manifest, Formatting.Indented));
+            File.WriteAllText(Path.Combine(dest, "manifest.json"), JsonConvert.SerializeObject(manifest));
 
             // TODO: write to files/directory
         }
