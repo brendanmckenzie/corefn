@@ -4,7 +4,11 @@ namespace TestFn
 {
     public class Calculator
     {
+        public class AddRequest { public int A { get; set; } public int B { get; set; } }
+        public class AddResponse { public int Result { get; set; } }
+
         [ExportedFunction]
-        public int Add(int a = 1, int b = 2) => a + b;
+        public AddResponse Add(AddRequest request) =>
+            new AddResponse { Result = request.A + request.B };
     }
 }

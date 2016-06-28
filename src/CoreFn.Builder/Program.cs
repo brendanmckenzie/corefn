@@ -13,6 +13,46 @@ namespace CoreFn.Builder
         static void Log(string message)
             => Console.WriteLine(message);
 
+        static string ProcessParameters(MethodInfo method)
+        {
+            var parameters = method.GetParameters();
+            switch (parameters.Count())
+            {
+                case 0:
+                    return null;
+                case 1:
+                    var type = parameters.First().ParameterType;
+                    if (type == typeof(string))
+                    {
+                        return "input";
+                    }
+                    else
+                    {
+                        return $"JsonConvert.DeserializeObject<{type.FullName.Replace('+', '.')}>(input)";
+                    }
+                default:
+                    throw new InvalidOperationException($"Only one parameter is accepted. Function: {method.Name}");
+            }
+        }
+
+        static string ProcessMethodCall(MethodInfo method)
+        {
+            var methodCall = $"new {method.DeclaringType.FullName}().{method.Name}({ProcessParameters(method)})";
+
+            if (method.ReturnType == typeof(void))
+            {
+                return methodCall;
+            }
+            else if (method.ReturnType == typeof(string))
+            {
+                return methodCall = $"var ret = {methodCall}; callback(ret)";
+            }
+            else
+            {
+                return methodCall = $"var ret = {methodCall}; callback(JsonConvert.SerializeObject(ret))";
+            }
+        }
+
         public static void Main(string[] args)
         {
             var files = Directory.GetFiles(args[0], "*.dll");
@@ -39,7 +79,14 @@ namespace CoreFn.Builder
                 throw new InvalidOperationException("No exported functions found");
             }
 
-            var classStr = ProxyClass.Replace("$switch$", string.Join(Environment.NewLine, functions.Select(ent => $"{new string(' ', 16)}case {ent.Index}: new {ent.Type.FullName}().{ent.Method.Name}(); break;")));
+            var classStr = ProxyClass.Replace(
+                "$switch$",
+                string.Join(Environment.NewLine,
+                    functions.Select(ent =>
+                        $"{new string(' ', 16)}case {ent.Index}: {{ {ProcessMethodCall(ent.Method)}; }} break;"
+                    )
+                )
+            );
             Console.WriteLine("Writing Proxy class");
             // Console.WriteLine(classStr);
             // Console.WriteLine();
@@ -63,12 +110,13 @@ namespace CoreFn.Builder
 
         const string ProxyClass = @"
 using System;
+using Newtonsoft.Json;
 
 namespace CoreFn.Bootstrap
 {
     public static class Proxy
     {
-        public static void Pass(int command)
+        public static void Pass(int command, string input, Action<string> callback)
         {
             switch (command)
             {

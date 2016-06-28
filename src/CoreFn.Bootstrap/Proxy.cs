@@ -6,7 +6,7 @@ namespace CoreFn.Bootstrap
 {
     public static class Proxy
     {
-        public static void Pass(int command)
+        public static void Pass(int command, string input, Action<string> callback)
         {
             Console.WriteLine($"Execute command: {command}");
             // switch statement goes here

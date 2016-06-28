@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreFn.Runner
@@ -24,8 +25,9 @@ namespace CoreFn.Runner
                 var stream = client.GetStream();
 
                 var buffer = Header
-                    .Concat(BitConverter.GetBytes(10))
+                    .Concat(BitConverter.GetBytes(10)) // command
                     .Concat(Footer)
+                    .Concat(Encoding.UTF8.GetBytes("hello"))
                     .ToArray();
 
                 // System.Threading.Thread.Sleep(1000);
