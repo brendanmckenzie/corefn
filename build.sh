@@ -1,3 +1,5 @@
+# This file builds a docker image from sources with bootstrap
+
 set -e
 
 rm -rf _build
@@ -26,3 +28,5 @@ rm _build/src/$1/project.json-e
 echo Building bootstrapped program
 dotnet restore _build/src/$1
 dotnet build _build/src/$1
+
+# TODO: build docker container
