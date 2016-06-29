@@ -96,6 +96,10 @@ namespace CoreFn.Bootstrap
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                Log($"Exception handling client request: {ex.Message}");
+            }
             finally
             {
                 stream.Dispose();

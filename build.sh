@@ -1,9 +1,10 @@
 # This file builds a docker image from sources with bootstrap
 
-set -e
+# set -e
 
 rm -rf _build
-mkdir -p _build/{bin,src}
+mkdir -p _build/bin
+mkdir _build/src
 
 echo Building project
 dotnet build test/$1
@@ -16,7 +17,9 @@ dotnet src/CoreFn.Builder/bin/Debug/netcoreapp1.0/CoreFn.Builder.dll test/$1/bin
 
 echo Copying original source
 cp -R test/$1 _build/src
-rm -rf _build/src/$1/{bin,obj,project.lock.json}
+rm -rf _build/src/$1/bin
+rm -rf _build/src/$1/obj
+rm -f _build/src/$1/project.lock.json
 
 echo Copying bootstrapper
 cp src/CoreFn.Bootstrap/Program.cs _build/src/$1

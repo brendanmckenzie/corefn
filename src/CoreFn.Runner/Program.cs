@@ -33,12 +33,6 @@ namespace CoreFn.Runner
 
                 await stream.WriteAsync(packet, 0, packet.Length);
 
-                // System.Threading.Thread.Sleep(500);
-
-                await stream.FlushAsync();
-
-                while (!stream.DataAvailable) {}
-
                 // if (stream.DataAvailable)
                 {
                     var read = 0;
