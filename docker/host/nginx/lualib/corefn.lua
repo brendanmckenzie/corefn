@@ -1,8 +1,10 @@
 local redis = require 'resty.redis'
+local cjson = require 'cjson'
 
 redis.add_commands('expire')
 
-local redis_host_ip = '172.17.0.2'
+local redis_host = 'redis'
+local redis_host_ip = '172.17.0.3' -- socket.dns.toip(redis_host)
 local docker_host_ip = '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 local manifest_root = '/var/func/manifest'
@@ -95,21 +97,32 @@ function file_exists(name)
    if f~=nil then io.close(f) return true else return false end
 end
 
+function int_to_bytes(n)
+  if n > 2147483647 then error(n.." is too large",2) end
+  if n < -2147483648 then error(n.." is too small",2) end
+  -- adjust for 2's complement
+  n = (n < 0) and (4294967296 + n) or n
+  return (math.modf(n / 16777216)) % 256,
+         (math.modf(n / 65536)) % 256,
+         (math.modf(n / 256)) % 256,
+         n % 256
+end
+
 -- 1. map request to function
 local path = split_path(ngx.var.uri)
 fnmod = path[1]
 fnfunc = path[2]
 if (fnmod == nil or fnfunc == nil) then
-  ngx.say('404 - no function specified')
   ngx.status = 404
+  ngx.say('no function specified')
   ngx.exit(ngx.HTTP_NOT_FOUND)
   do return end
 end
 
-local manifest_fd = io.open(manifest_root .. '/' .. fnmod, 'r')
+local manifest_fd = io.open(manifest_root .. '/' .. fnmod .. '.json', 'r')
 if manifest_fd == nil then
-  ngx.say('404 - function manifest not found')
   ngx.status = 404
+  ngx.say('function manifest not found')
   ngx.exit(ngx.HTTP_NOT_FOUND)
   do return end
 end
@@ -117,7 +130,7 @@ local manifest_raw = manifest_fd:read('*a')
 local manifest = cjson.decode(manifest_raw)
 
 local func_id = nil
-for fn in manifest['Functions'] do
+for i, fn in ipairs(manifest['Functions']) do
   if fn['Name'] == fnfunc then
     func_id = fn['Index']
     break
@@ -125,7 +138,7 @@ for fn in manifest['Functions'] do
 end
 
 if func_id == nil then
-  ngx.say('404 - function method not found')
+  ngx.say('function method not found')
   ngx.status = 404
   ngx.exit(ngx.HTTP_NOT_FOUND)
   do return end
@@ -135,8 +148,8 @@ fnmod = string.lower(fnmod, '')
 fnmod = string.gsub(fnmod, '%A', '')
 
 local docker_image = 'corefn/' .. fnmod
--- TODO: map function to integral representation
-local func = [[\xFF\xFF\xFF\x7F]]
+local func1, func2, func3, func4 = int_to_bytes(tonumber(func_id))
+local func = string.format('\\x%02X\\x%02X\\x%02X\\x%02X', func4, func3, func2, func1)
 
 ngx.req.read_body()
 
@@ -151,8 +164,9 @@ port = image_port(docker_image)
 local sock = ngx.socket.tcp()
 local ok, err = sock:connect(docker_host_ip, port)
 
+-- TODO: fix this... use proper bytestreams
 local packet = [[\x0F\x0A]] .. func .. [[\xFF\xAA]] .. data .. [[\x00\x00\x00\x00]]
-packet_bin = packet:gsub('\\x(%x%x)',function (x) return string.char(tonumber(x,16)) end)
+packet_bin = packet:gsub('\\x(%x%x)', function (x) return string.char(tonumber(x,16)) end)
 
 local bytes, err = sock:send(packet_bin)
 

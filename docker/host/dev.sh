@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 exec docker run --rm -it \
-  --name my-app-dev \
   -v "$(pwd)/nginx/conf":/opt/openresty/nginx/conf \
   -v "$(pwd)/nginx/lualib":/opt/openresty/nginx/lualib \
+  -v "$(pwd)/corefn/manifest":/var/func/manifest \
   -p 8080:8080 \
   --link=redis \
   corefn/host "$@"
