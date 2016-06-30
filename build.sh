@@ -31,5 +31,16 @@ rm _build/src/$1/project.json-e
 echo Building bootstrapped program
 dotnet restore _build/src/$1
 dotnet build _build/src/$1
+dotnet publish -o _build/publish _build/src/$1
 
-# TODO: build docker container
+echo Building docker image
+echo "FROM microsoft/dotnet:latest\n\nCOPY . /app\n\nENTRYPOINT [\"dotnet\", \"/app/$1.dll\"]" > _build/publish/Dockerfile
+
+SAFE_NAME="$(echo $1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
+echo name: corefn/$SAFE_NAME
+
+docker build -t corefn/$SAFE_NAME _build/publish
+
+echo Updating manifest store
+mkdir _build/manifest
+mv _build/src/$1/manifest.json _build/manifest/$1.json
