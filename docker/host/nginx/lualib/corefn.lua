@@ -89,14 +89,48 @@ function split_path(str)
  return split(str,'[\\/]+')
 end
 
+function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
+end
+
 -- 1. map request to function
 local path = split_path(ngx.var.uri)
 fnmod = path[1]
 fnfunc = path[2]
 if (fnmod == nil or fnfunc == nil) then
-  ngx.say('invalid request')
+  ngx.say('404 - no function specified')
+  ngx.status = 404
+  ngx.exit(ngx.HTTP_NOT_FOUND)
   do return end
 end
+
+local manifest_fd = io.open(manifest_root .. fnmod, 'r')
+if manifest_fd == nil then
+  ngx.say('404 - function manifest not found')
+  ngx.status = 404
+  ngx.exit(ngx.HTTP_NOT_FOUND)
+  do return end
+end
+local manifest_raw = manifest_fd:read('*a')
+local manifest = cjson.decode(manifest_raw)
+
+local func_id = nil
+for fn in manifest['Functions'] do
+  if fn['Name'] == fnfunc then
+    func_id = fn['Index']
+    break
+  end
+end
+
+if func_id == nil then
+  ngx.say('404 - function method not found')
+  ngx.status = 404
+  ngx.exit(ngx.HTTP_NOT_FOUND)
+  do return end
+end
+
+-- read /home/corefn/manifest/<fnmod>.json
 
 fnmod = string.lower(fnmod, '')
 fnmod = string.gsub(fnmod, '%A', '')
