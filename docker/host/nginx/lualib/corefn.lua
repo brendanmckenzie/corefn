@@ -2,7 +2,7 @@ local redis = require 'resty.redis'
 
 redis.add_commands('expire')
 
-local redis_host_ip = '172.17.0.3'
+local redis_host_ip = '172.17.0.2'
 local docker_host_ip = '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 
@@ -93,6 +93,11 @@ end
 local path = split_path(ngx.var.uri)
 fnmod = path[1]
 fnfunc = path[2]
+if (fnmod == nil or fnfunc == nil) then
+  ngx.say('invalid request')
+  do return end
+end
+
 fnmod = string.lower(fnmod, '')
 fnmod = string.gsub(fnmod, '%A', '')
 
