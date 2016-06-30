@@ -5,6 +5,7 @@ redis.add_commands('expire')
 local redis_host_ip = '172.17.0.2'
 local docker_host_ip = '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
+local manifest_root = '/var/func/manifest'
 
 function exec(cmd)
   local fd = assert(io.popen(cmd, 'r'))
@@ -105,7 +106,7 @@ if (fnmod == nil or fnfunc == nil) then
   do return end
 end
 
-local manifest_fd = io.open(manifest_root .. fnmod, 'r')
+local manifest_fd = io.open(manifest_root .. '/' .. fnmod, 'r')
 if manifest_fd == nil then
   ngx.say('404 - function manifest not found')
   ngx.status = 404
@@ -129,8 +130,6 @@ if func_id == nil then
   ngx.exit(ngx.HTTP_NOT_FOUND)
   do return end
 end
-
--- read /home/corefn/manifest/<fnmod>.json
 
 fnmod = string.lower(fnmod, '')
 fnmod = string.gsub(fnmod, '%A', '')
