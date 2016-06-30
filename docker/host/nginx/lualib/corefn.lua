@@ -1,5 +1,8 @@
 local redis = require 'resty.redis'
 
+redis.add_commands('expire')
+
+local redis_host_ip = '172.17.0.3'
 local docker_host_ip = '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 
@@ -13,7 +16,7 @@ end
 
 function run_docker_image(image)
   -- spin up docker image
-  local container = exec('docker -H ' .. docker_host .. ' run -d -p 6543 '.. image)
+  local container = exec('docker -H ' .. docker_host .. ' run -d -p 6543 --label=corefn=true '.. image)
 
   -- 4. wait for it to be ready
   local fd = assert(io.popen('docker -H ' .. docker_host .. ' logs -f ' .. container))
@@ -35,7 +38,7 @@ function image_port(image)
   local container = nil
 
   local red = redis:new()
-  local ok, err = red:connect('172.17.0.3', 6379)
+  local ok, err = red:connect(redis_host_ip, 6379)
   if not ok then
     ngx.log(ngx.ERR, 'failed to connect to redis')
   else
@@ -45,7 +48,8 @@ function image_port(image)
         ngx.log(ngx.NOTICE, 'container not found.')
         container = nil
       else
-        red:set(container .. ':last_hit', os.time())
+        red:expire(container, 60)
+        red:expire(image, 60)
       end
     end
   end
@@ -54,6 +58,9 @@ function image_port(image)
     container = run_docker_image(image)
 
     red:set(image, container)
+    red:set(container, image)
+    red:expire(container, 60)
+    red:expire(image, 60)
   end
 
   return get_docker_port(container)
