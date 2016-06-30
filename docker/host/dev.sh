@@ -6,7 +6,7 @@ exec docker run --rm -it \
   -v "$(pwd)/nginx/lualib":/opt/openresty/nginx/lualib \
   -p 8080:8080 \
   --link=redis \
-  corefn "$@"
+  corefn/host "$@"
 
 # you may add more -v options to mount another directories, e.g. nginx/html/
 
