@@ -5,19 +5,22 @@ set -e
 # $1 == path to root of project
 # $1/.func has name of functions
 
-echo "DIR $1"
+BUILD_ROOT=/home/corefn/build
+
+echo Adding root CoreFn project
+cp -R $BUILD_ROOT/utils/CoreFn $1/src
 
 echo Building project
 dotnet restore $1
-dotnet build $1/**/project.json
+dotnet build $1/src/**/project.json
 
 FUNC=$(cat $1/.func)
 
 echo Building proxy and manifest
-dotnet utils/bin/CoreFn.Builder.dll $1/src/$FUNC/bin/Debug/netcoreapp1.0/ $1/src/$FUNC
+dotnet $BUILD_ROOT/utils/bin/CoreFn.Builder.dll $1/src/$FUNC/bin/Debug/netcoreapp1.0/ $1/src/$FUNC
 
 echo Copying bootstrapper
-cp utils/Bootstrap.Program.cs $1/src/$FUNC/Program.cs
+cp $BUILD_ROOT/utils/Bootstrap.Program.cs $1/src/$FUNC/Program.cs
 
 echo Updating project.json to emit entry point
 sed -i -e 's/"emitEntryPoint": false/"emitEntryPoint": true/' $1/src/$FUNC/project.json
