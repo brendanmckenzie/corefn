@@ -5,7 +5,7 @@ redis.add_commands('expire')
 
 local redis_host = 'redis'
 local redis_host_ip = '172.17.0.3' -- socket.dns.toip(redis_host)
-local docker_host_ip = '172.17.0.1'
+local docker_host_ip = 'docker' -- '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 local manifest_root = '/var/func/manifest'
 
