@@ -110,8 +110,15 @@ end
 
 -- 1. map request to function
 local path = split_path(ngx.var.uri)
-fnmod = path[1]
-fnfunc = path[2]
+local account = path[1]
+local fnmod = path[2]
+local fnfunc = path[3]
+if (account == nil) then
+  ngx.status = 404
+  ngx.say('no account specified')
+  ngx.exit(ngx.HTTP_NOT_FOUND)
+  do return end
+end
 if (fnmod == nil or fnfunc == nil) then
   ngx.status = 404
   ngx.say('no function specified')
@@ -119,7 +126,7 @@ if (fnmod == nil or fnfunc == nil) then
   do return end
 end
 
-local manifest_fd = io.open(manifest_root .. '/' .. fnmod .. '.json', 'r')
+local manifest_fd = io.open(manifest_root .. '/' .. account .. '/' .. fnmod .. '.json', 'r')
 if manifest_fd == nil then
   ngx.status = 404
   ngx.say('function manifest not found')

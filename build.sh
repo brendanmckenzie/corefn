@@ -6,6 +6,7 @@ set -e
 # $1/.func has name of functions
 
 BUILD_ROOT=/home/corefn/build
+# DOCKER_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "1234/tcp") 0).HostPort}}' docker)
 
 echo Adding root CoreFn project
 cp -R $BUILD_ROOT/utils/CoreFn $1/src
@@ -38,4 +39,5 @@ echo name: corefn/$SAFE_NAME
 docker build -t corefn/$SAFE_NAME $1/publish
 
 echo Updating manifest store
-cp $1/src/$FUNC/manifest.json /home/corefn/manifest/$FUNC.json
+mkdir -p /home/corefn/manifest/`basename $2`
+cp $1/src/$FUNC/manifest.json /home/corefn/manifest/`basename $2`/$FUNC.json
