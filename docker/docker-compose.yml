@@ -10,7 +10,11 @@ services:
       - /home/corefn/manifest:/var/func/manifest
     depends_on:
       - redis
+    links:
+      - redis
   cleaner:
     build: cleaner
     depends_on:
+      - redis
+    links:
       - redis
