@@ -3,8 +3,8 @@ local redis = require 'resty.redis'
 
 redis.add_commands('expire')
 
-local redis_host_ip = '172.16.238.10'
-local docker_host_ip = '172.16.238.1'
+local redis_host_ip = nil
+local docker_host_ip = '172.17.0.1'
 local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 
 mod.docker_host_ip = docker_host_ip
@@ -78,6 +78,10 @@ end
 
 function mod.image_port(image)
   local container = nil
+
+  if redis_host_ip == nil then
+    redis_host_ip = mod.lookup_host('redis')
+  end
 
   local red = redis:new()
   local ok, err = red:connect(redis_host_ip, 6379)
