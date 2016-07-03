@@ -2,7 +2,7 @@ const async = require('async')
 const redis = require('redis')
 const spawn = require('child_process').spawn
 
-const redisHost = '172.17.0.2'
+const redisHost = '172.17.0.3'
 const dockerHost = 'tcp://172.17.0.1:2375'
 
 const exec = (exe, args, callback) => {
@@ -13,7 +13,7 @@ const exec = (exe, args, callback) => {
   })
 
   cmd.stderr.on('data', (data) => {
-
+    console.error('error', exe, data.toString())
   })
 
   cmd.on('close', (code) => {
@@ -45,6 +45,7 @@ const listFromDocker = (callback) => {
 }
 
 const run = () => {
+  console.log('cleaning')
   async.parallel([
     listFromRedis,
     listFromDocker
@@ -64,9 +65,8 @@ const run = () => {
       if (err) {
         return console.error(err)
       }
-      console.log(res)
     })
   })
 }
 
-setInterval(run, 60000)
+setInterval(run, 10000)
