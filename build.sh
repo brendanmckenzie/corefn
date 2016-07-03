@@ -8,9 +8,6 @@ set -e
 BUILD_ROOT=/home/corefn/build
 # DOCKER_PORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "1234/tcp") 0).HostPort}}' docker)
 
-echo Adding root CoreFn project
-cp -R $BUILD_ROOT/utils/CoreFn $1/src
-
 echo Building project
 dotnet restore $1
 dotnet build $1/src/**/project.json
