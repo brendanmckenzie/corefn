@@ -79,9 +79,9 @@ end
 function mod.image_port(image)
   local container = nil
 
-  -- if redis_host_ip == nil then
-  --   redis_host_ip = mod.lookup_host('redis')
-  -- end
+  if redis_host_ip == nil then
+    redis_host_ip = mod.lookup_host('redis')
+  end
 
   local red = redis:new()
   local ok, err = red:connect('redis', 6379)
