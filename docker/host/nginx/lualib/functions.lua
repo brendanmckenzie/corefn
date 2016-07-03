@@ -4,10 +4,8 @@ local redis = require 'resty.redis'
 redis.add_commands('expire')
 
 local redis_host_ip = nil
-local docker_host_ip = '172.17.0.1'
-local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
-
-mod.docker_host_ip = docker_host_ip
+local docker_host_ip = nil -- '172.17.0.1'
+local docker_host = nil
 
 function mod.split(str, pat)
   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
@@ -30,21 +28,7 @@ end
 
 -- TODO: deprecate. use env var
 function mod.lookup_host(host)
-  local fd = io.open('/etc/hosts', 'r')
-  local hosts = fd:read('*a')
-  print ('######## hosts')
-  print (hosts)
-
-  local hosts_tbl = mod.split(hosts, '\n')
-  local ret = nil
-  for i, line in ipairs(hosts_tbl) do
-    local h = mod.split(line, '%s')
-    if (h[2] == host) then
-      ret = h[1]
-      break
-    end
-  end
-  return ret
+  return mod.exec("getent hosts " .. host .. " | awk '{ print $1 }'")
 end
 
 function mod.exec(cmd)
@@ -131,5 +115,10 @@ function mod.int_to_bytes(n)
          (math.modf(n / 256)) % 256,
          n % 256
 end
+
+docker_host_ip = mod.exec("ip route list | head -n 1 | awk '{ print $3 }'")
+docker_host = 'tcp://' .. docker_host_ip .. ':2375'
+
+mod.docker_host_ip = docker_host_ip
 
 return mod

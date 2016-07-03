@@ -7,14 +7,18 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - /home/corefn/manifest:/var/func/manifest
+      - /Users/brendan/Projects/corefn/docker/host/corefn/manifest:/var/func/manifest
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - redis
     links:
       - redis:redis
   cleaner:
     build: cleaner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       - redis
     links:
       - redis:redis
+

@@ -1,9 +1,10 @@
 const async = require('async')
 const redis = require('redis')
+const network = require('network')
 const spawn = require('child_process').spawn
 
 const redisHost = 'redis'
-const dockerHost = 'tcp://172.17.0.1:2375'
+let dockerHost = null // 'tcp://172.17.0.1:2375'
 
 const exec = (exe, args, callback) => {
   const cmd = spawn(exe, args)
@@ -73,5 +74,10 @@ const run = () => {
     })
   })
 }
+network.get_gateway_ip((err, ip) => {
+  console.log(`gateway (docker host): ${ip}`)
+  dockerHost = `tcp://${ip}:2375`
 
-setInterval(run, 10000)
+  setInterval(run, 10000)
+})
+

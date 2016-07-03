@@ -1,8 +1,6 @@
 local cjson = require 'cjson'
 local fn = require 'lualib/functions'
 
-print ('######## --------')
-
 local manifest_root = '/var/func/manifest'
 
 -- 1. map request to function
