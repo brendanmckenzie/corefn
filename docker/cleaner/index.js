@@ -24,6 +24,11 @@ const exec = (exe, args, callback) => {
 const listFromRedis = (callback) => {
   const client = redis.createClient(6379, redisHost)
   client.keys('*', function (err, res) {
+    if (err) {
+      client.quit()
+      return console.error('redis', err)
+    }
+
     const ret = res
       .filter(ent => ent.length == 64)
       .map(ent => ent.substr(0, 12))

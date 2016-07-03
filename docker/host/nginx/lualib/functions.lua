@@ -79,12 +79,12 @@ end
 function mod.image_port(image)
   local container = nil
 
-  if redis_host_ip == nil then
-    redis_host_ip = mod.lookup_host('redis')
-  end
+  -- if redis_host_ip == nil then
+  --   redis_host_ip = mod.lookup_host('redis')
+  -- end
 
   local red = redis:new()
-  local ok, err = red:connect(redis_host_ip, 6379)
+  local ok, err = red:connect('redis', 6379)
   if not ok then
     ngx.log(ngx.ERR, 'failed to connect to redis')
   else
