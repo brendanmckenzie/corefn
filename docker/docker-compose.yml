@@ -4,7 +4,8 @@ services:
     image: redis
   host:
     build: host
-    ports: 8080:8080
+    ports:
+      - 8080:8080
     volumes:
       - /home/corefn/manifest:/var/func/manifest
     depends_on:
