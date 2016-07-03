@@ -35,6 +35,8 @@ echo name: corefn/$SAFE_NAME
 
 docker build -t corefn/$SAFE_NAME $1/publish
 
+# TODO: kill any running instances of this image
+
 echo Updating manifest store
 mkdir -p /home/corefn/manifest/`basename $2`
 cp $1/src/$FUNC/manifest.json /home/corefn/manifest/`basename $2`/$FUNC.json
