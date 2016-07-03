@@ -2,7 +2,7 @@ const async = require('async')
 const redis = require('redis')
 const spawn = require('child_process').spawn
 
-const redisHost = '172.17.0.3'
+const redisHost = 'redis'
 const dockerHost = 'tcp://172.17.0.1:2375'
 
 const exec = (exe, args, callback) => {
