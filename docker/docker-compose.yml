@@ -8,13 +8,9 @@ services:
       - 8080:8080
     volumes:
       - /home/corefn/manifest:/var/func/manifest
-    depends_on:
-      - redis
     links:
       - redis:redis
   cleaner:
     build: cleaner
-    depends_on:
-      - redis
     links:
       - redis:redis
