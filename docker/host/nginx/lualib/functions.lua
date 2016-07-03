@@ -32,6 +32,9 @@ end
 function mod.lookup_host(host)
   local fd = io.open('/etc/hosts', 'r')
   local hosts = fd:read('*a')
+  print ('######## hosts')
+  print (hosts)
+
   local hosts_tbl = mod.split(hosts, '\n')
   local ret = nil
   for i, line in ipairs(hosts_tbl) do
