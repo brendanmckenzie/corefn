@@ -1,115 +1,12 @@
-local redis = require 'resty.redis'
 local cjson = require 'cjson'
+local fn = require 'lualib/functions'
 
-redis.add_commands('expire')
+print ('######## --------')
 
-local redis_host = 'redis'
-local redis_host_ip = '172.17.0.3' -- socket.dns.toip(redis_host)
-local docker_host_ip = '172.17.0.1'
-local docker_host = 'tcp://' .. docker_host_ip .. ':2375'
 local manifest_root = '/var/func/manifest'
 
-function exec(cmd)
-  local fd = assert(io.popen(cmd, 'r'))
-  local ret = assert(fd:read('*a'))
-  fd:close()
-
-  return ret:gsub('^%s*(.-)%s*$', '%1')
-end
-
-function run_docker_image(image)
-  -- spin up docker image
-  local container = exec('docker -H ' .. docker_host .. ' run -d -p 6543 --label=corefn=true '.. image)
-
-  -- 4. wait for it to be ready
-  local fd = assert(io.popen('docker -H ' .. docker_host .. ' logs -f ' .. container))
-  while true do
-      s = fd:read('*l'):gsub('^%s*(.-)%s*$', '%1')
-      if s == 'Listening on port 6543' then break end
-  end
-
-  return container
-end
-
-function get_docker_port(container)
-  local port = exec('docker -H ' .. docker_host .. ' inspect --format=\'{{(index (index .NetworkSettings.Ports "6543/tcp") 0).HostPort}}\' ' .. container)
-
-  return tonumber(port)
-end
-
-function image_port(image)
-  local container = nil
-
-  local red = redis:new()
-  local ok, err = red:connect(redis_host_ip, 6379)
-  if not ok then
-    ngx.log(ngx.ERR, 'failed to connect to redis')
-  else
-    container, err = red:get(image)
-    if container then
-      if container == ngx.null then
-        ngx.log(ngx.NOTICE, 'container not found.')
-        container = nil
-      else
-        red:expire(container, 60)
-        red:expire(image, 60)
-      end
-    end
-  end
-
-  if not container then
-    container = run_docker_image(image)
-
-    red:set(image, container)
-    red:set(container, image)
-    red:expire(container, 60)
-    red:expire(image, 60)
-  end
-
-  return get_docker_port(container)
-end
-
-function split(str, pat)
-   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
-   local fpat = "(.-)" .. pat
-   local last_end = 1
-   local s, e, cap = str:find(fpat, 1)
-   while s do
-      if s ~= 1 or cap ~= "" then
-   table.insert(t,cap)
-      end
-      last_end = e+1
-      s, e, cap = str:find(fpat, last_end)
-   end
-   if last_end <= #str then
-      cap = str:sub(last_end)
-      table.insert(t, cap)
-   end
-   return t
-end
-
-function split_path(str)
- return split(str,'[\\/]+')
-end
-
-function file_exists(name)
-   local f=io.open(name,"r")
-   if f~=nil then io.close(f) return true else return false end
-end
-
-function int_to_bytes(n)
-  if n > 2147483647 then error(n.." is too large",2) end
-  if n < -2147483648 then error(n.." is too small",2) end
-  -- adjust for 2's complement
-  n = (n < 0) and (4294967296 + n) or n
-  return (math.modf(n / 16777216)) % 256,
-         (math.modf(n / 65536)) % 256,
-         (math.modf(n / 256)) % 256,
-         n % 256
-end
-
 -- 1. map request to function
-local path = split_path(ngx.var.uri)
+local path = fn.split_path(ngx.var.uri)
 local account = path[1]
 local fnmod = path[2]
 local fnfunc = path[3]
@@ -117,13 +14,13 @@ if (account == nil) then
   ngx.status = 404
   ngx.say('no account specified')
   ngx.exit(ngx.HTTP_NOT_FOUND)
-  do return end
+  return
 end
 if (fnmod == nil or fnfunc == nil) then
   ngx.status = 404
   ngx.say('no function specified')
   ngx.exit(ngx.HTTP_NOT_FOUND)
-  do return end
+  return
 end
 
 local manifest_fd = io.open(manifest_root .. '/' .. account .. '/' .. fnmod .. '.json', 'r')
@@ -131,7 +28,7 @@ if manifest_fd == nil then
   ngx.status = 404
   ngx.say('function manifest not found')
   ngx.exit(ngx.HTTP_NOT_FOUND)
-  do return end
+  return
 end
 local manifest_raw = manifest_fd:read('*a')
 local manifest = cjson.decode(manifest_raw)
@@ -145,17 +42,17 @@ for i, fn in ipairs(manifest['Functions']) do
 end
 
 if func_id == nil then
-  ngx.say('function method not found')
   ngx.status = 404
+  ngx.say('function method not found')
   ngx.exit(ngx.HTTP_NOT_FOUND)
-  do return end
+  return
 end
 
 fnmod = string.lower(fnmod, '')
 fnmod = string.gsub(fnmod, '%A', '')
 
 local docker_image = 'corefn/' .. fnmod
-local func1, func2, func3, func4 = int_to_bytes(tonumber(func_id))
+local func1, func2, func3, func4 = fn.int_to_bytes(tonumber(func_id))
 local func = string.format('\\x%02X\\x%02X\\x%02X\\x%02X', func4, func3, func2, func1)
 
 ngx.req.read_body()
@@ -166,10 +63,10 @@ if data == nil then
     data = ''
 end
 
-port = image_port(docker_image)
+port = fn.image_port(docker_image)
 
 local sock = ngx.socket.tcp()
-local ok, err = sock:connect(docker_host_ip, port)
+local ok, err = sock:connect(fn.docker_host_ip, port)
 
 -- TODO: fix this... use proper bytestreams
 local packet = [[\x0F\x0A]] .. func .. [[\xFF\xAA]] .. data .. [[\x00\x00\x00\x00]]
