@@ -2,6 +2,9 @@ version: '2'
 services:
   redis:
     image: redis
+    networks:
+      app_net:
+        ipv4_address: 172.16.238.10
   host:
     build: host
     ports:
@@ -14,3 +17,11 @@ services:
     build: cleaner
     links:
       - redis:redis
+networks:
+  app_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 172.16.238.0/24
+        gateway: 172.16.238.1
