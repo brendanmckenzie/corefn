@@ -66,7 +66,11 @@ const run = () => {
 
     async.each(kill, (ent, callback) => {
       console.log(`killing ${ent}`)
-      exec('docker', ['-H', dockerHost, 'kill', ent], callback)
+      async.eachSeries(['kill', 'rm'], (cmd, innerCallback) => {
+        exec('docker', ['-H', dockerHost, cmd, ent], innerCallback)
+      }, (err, res) => {
+        callback()
+      })
     }, (err, res) => {
       if (err) {
         return console.error(err)
