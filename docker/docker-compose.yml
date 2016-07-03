@@ -1,0 +1,15 @@
+version: '2'
+services:
+  redis:
+    image: redis
+  host:
+    build: host
+    ports: 8080:8080
+    volumes:
+      - /home/corefn/manifest:/var/func/manifest
+    depends_on:
+      - redis
+  cleaner:
+    build: cleaner
+    depends_on:
+      - redis
