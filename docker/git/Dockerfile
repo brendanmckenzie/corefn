@@ -1,17 +1,29 @@
-FROM alpine
+FROM microsoft/dotnet:1.0.0-core-deps
 
-RUN apk update && \
-  apk add openssh git && \
-  rm -rf /var/cache/apk/*
+# FROM alpine
 
-RUN adduser git -h /var/git -D
-RUN mkdir -p /var/git/.ssh
-RUN touch /var/git/.authorized_keys
-RUN chown -R git:git /var/git
-RUN chmod 644 /var/git/.ssh/authorized_keys
+# RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 
-RUN sed -i -e 's/.*LogLevel.*/LogLevel VERBOSE/' -e 's/#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
-RUN sed -i -e 's/#UsePAM.*/UsePAM no/' /etc/ssh/sshd_config
+# RUN apk update && \
+#   apk add openssh git@edge && \
+#   rm -rf /var/cache/apk/*
+
+# RUN adduser git -h /var/git -D
+# RUN passwd -d 'git' git
+
+RUN apt-get update && \
+  apt-get install -y openssh-server git && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN useradd git -d /var/git -m -p git
+
+ADD hooks /etc/git/hooks
+
+USER git
+RUN echo "[core]" > /var/git/.gitconfig
+RUN echo "    hooksPath = /etc/git/hooks" >> /var/git/.gitconfig
+
+USER root
 
 EXPOSE 22
 

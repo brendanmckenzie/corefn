@@ -31,6 +31,7 @@ echo Building docker image
 echo "FROM microsoft/dotnet:latest\n\nCOPY . /app\n\nENTRYPOINT [\"dotnet\", \"/app/$FUNC.dll\"]" > $1/publish/Dockerfile
 
 SAFE_NAME="$(echo $FUNC | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
+SAFE_NAME="$(basename $2)$SAFE_NAME"
 echo name: corefn/$SAFE_NAME
 
 docker build -t corefn/$SAFE_NAME $1/publish
