@@ -262,3 +262,5 @@ paket-files/
 
 _build/
 utils/
+
+.DS_Store

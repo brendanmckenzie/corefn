@@ -15,6 +15,8 @@ RUN apt-get update && \
   apt-get install -y openssh-server curl build-essential libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev xz-utils libunwind8 && \
   rm -rf /var/lib/apt/lists/*
 
+  # TODO: tidy this up
+
 # Install git 2.9
 RUN curl -o /tmp/git-2.9.0.tar.xz https://www.kernel.org/pub/software/scm/git/git-2.9.0.tar.xz
 WORKDIR /tmp
@@ -31,6 +33,12 @@ RUN curl -sSL -o /tmp/dotnet.tar.gz https://go.microsoft.com/fwlink/?LinkID=8091
 WORKDIR /tmp
 RUN mkdir -p /opt/dotnet && tar zxf dotnet.tar.gz -C /opt/dotnet
 RUN ln -s /opt/dotnet/dotnet /usr/local/bin
+RUN rm -rf /tmp/dotnet.tar.gz
+
+WORKDIR /
+
+RUN apt-get remove -y build-essential xz-utils libcurl4-gnutls-dev libexpat1-dev
+RUN apt-get autoremove -y
 
 RUN mkdir /var/run/sshd
 
@@ -44,6 +52,8 @@ RUN echo "[core]" > /var/git/.gitconfig
 RUN echo "    hooksPath = /etc/git/hooks" >> /var/git/.gitconfig
 
 USER root
+
+ADD build /build
 
 EXPOSE 22
 
