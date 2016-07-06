@@ -2,6 +2,17 @@ version: '2'
 services:
   redis:
     image: redis
+  git:
+    build: git
+    ports: 7022:22
+    volumes:
+      - /var/func/manifest:/var/func/manifest
+      - /var/run/docker.sock:/var/run/docker.sock
+      - TODO
+    depends_on:
+      - redis
+    links:
+      - redis:redis
   host:
     build: host
     ports:

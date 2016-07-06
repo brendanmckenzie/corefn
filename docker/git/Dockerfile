@@ -11,8 +11,17 @@ FROM microsoft/dotnet:1.0.0-core-deps
 # RUN adduser git -h /var/git -D
 # RUN passwd -d 'git' git
 
+
 RUN apt-get update && \
-  apt-get install -y openssh-server curl build-essential libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev xz-utils libunwind8 && \
+  apt-get install -y apt-transport-https ca-certificates && \
+  apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D && \
+  echo "deb https://apt.dockerproject.org/repo debian-jessie main" > /etc/apt/sources.list.d/docker.list
+
+RUN apt-get update && \
+  apt-get install -y \
+    openssh-server curl build-essential libcurl4-gnutls-dev \
+    libexpat1-dev gettext libz-dev libssl-dev xz-utils libunwind8 \
+    docker-engine && \
   rm -rf /var/lib/apt/lists/*
 
   # TODO: tidy this up
@@ -37,7 +46,7 @@ RUN rm -rf /tmp/dotnet.tar.gz
 
 WORKDIR /
 
-RUN apt-get remove -y build-essential xz-utils libcurl4-gnutls-dev libexpat1-dev
+RUN apt-get remove -y build-essential xz-utils libcurl4-gnutls-dev libexpat1-dev apt-transport-https
 RUN apt-get autoremove -y
 
 RUN mkdir /var/run/sshd
@@ -54,6 +63,8 @@ RUN echo "    hooksPath = /etc/git/hooks" >> /var/git/.gitconfig
 USER root
 
 ADD build /build
+RUN chmod 666 /build/utils/bin/*.dll
+RUN mkdir -m 777 -p /build/_temp
 
 EXPOSE 22
 

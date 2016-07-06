@@ -61,6 +61,14 @@ function mod.get_docker_port(container)
 end
 
 function mod.image_port(image)
+  -- avoid race condition
+  lock_key = 'lock:' .. image
+  lock, err = red:get(lock_key)
+  while lock == '1' do
+    lock, err = red:get(lock_key)
+  end
+  red:set(lock_key, '1')
+
   local container = nil
 
   if redis_host_ip == nil then
@@ -92,6 +100,8 @@ function mod.image_port(image)
     red:expire(container, 60)
     red:expire(image, 60)
   end
+
+  red:del(lock_key)
 
   return mod.get_docker_port(container)
 end
