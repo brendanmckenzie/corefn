@@ -8,8 +8,8 @@ services:
       - "7022:22"
     volumes:
       - /var/func/manifest:/var/func/manifest
+      - /var/func/projects:/var/func/projects
       - /var/run/docker.sock:/var/run/docker.sock
-      - TODO
     depends_on:
       - redis
     links:
