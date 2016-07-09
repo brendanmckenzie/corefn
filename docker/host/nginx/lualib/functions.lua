@@ -61,6 +61,9 @@ function mod.get_docker_port(container)
 end
 
 function mod.image_port(image)
+  if redis_host_ip == nil then
+    redis_host_ip = mod.lookup_host('redis')
+  end
 
   local red = redis:new()
   local red_ok, err = red:connect(redis_host_ip, 6379)
@@ -77,10 +80,6 @@ function mod.image_port(image)
   red:set(lock_key, '1')
 
   local container = nil
-
-  if redis_host_ip == nil then
-    redis_host_ip = mod.lookup_host('redis')
-  end
 
   if red_ok then
     container, err = red:get(image)
