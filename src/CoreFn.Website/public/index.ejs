@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Unnamed</title>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Hello.</h1>
+    <div class="columns is-desktop">
+      <div class="column content">
+        <p>Would you like to write code and run it without worrying about where
+        and how it's executed?</p>
+        <p>I can help with that.</p>
+        <p>Although I haven't thought of an official name for this "thing" and
+          it's currently under development, I would like for you to work with me
+          in making it something special.</p>
+        <p>Currently this only works with .NET Core libraries, however there may
+          dependent on feedback that may be extended to other frameworks.</p>
+        <p>– Brendan</p>
+
+        <hr />
+        <h2 class="is-2">Cool, but what is it?</h2>
+        <p>Here's a simple example.  Click this button.</p>
+
+        <div id="demo"></div>
+
+        <h3 class="is-3">Cute.  But what just happened?</h3>
+        <p>Clicking that button triggered a HTTP request. The endpoint spun up
+        a Docker container with pre-compiled .NET application.  The HTTP server
+        passed the request through to the application, the application responded
+        with the message returned.</p>
+        <p><a target="_blank" href="https://github.com/brendanmckenzie/corefn-demo">The .NET application behind this HTTP request can be found here</a>.</p>
+
+      </div>
+      <div class="column is-one-third">
+        <form class="content" role="form" action="https://getsimpleform.com/messages?form_api_token=0166e11ccb53a82f306a2f68b0c53a28" method="POST">
+          <input type='hidden' name='redirect_to' value="http://func.mckenzie.io/thanks.html" />
+          <p>Just fill out this little form and I'll be in touch.</p>
+          <label class="label is-required" for="name">Name</label>
+          <p class="control">
+            <input id="name" name="name" class="input" type="text" placeholder="Brendan McKenzie" autofocus />
+          </p>
+          <label class="label is-required" for="email">Email</label>
+          <p class="control">
+            <input id="email" name="email" class="input" type="email" />
+          </p>
+          <label class="label" for="suggestion">Suggestion</label>
+          <p class="control">
+            <input id="suggestion" name="suggestion" class="input" type="text" placeholder="Precarious Puppet" />
+            <span class="help">Help me name this thing.</span>
+          </p>
+          <div class="has-text-right">
+            <button type="submit" class="button is-primary">Submit</button>
+            <button type="reset" class="button">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="/scripts.js"></script>
+</body>
+</html>

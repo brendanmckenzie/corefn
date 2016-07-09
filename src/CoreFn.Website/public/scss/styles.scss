@@ -1,0 +1,18 @@
+@import 'variables';
+
+@import '../../node_modules/bulma/bulma';
+
+@import 'bourbon';
+@import 'typography';
+
+body {
+  padding: 20px;
+}
+
+label.is-required {
+  &:after {
+    content: '*';
+    font-size: 80%;
+    position: absolute;
+  }
+}
