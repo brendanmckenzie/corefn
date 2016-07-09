@@ -4,7 +4,8 @@ services:
     image: redis
   git:
     build: git
-    ports: 7022:22
+    ports:
+      - "7022:22"
     volumes:
       - /var/func/manifest:/var/func/manifest
       - /var/run/docker.sock:/var/run/docker.sock
@@ -16,7 +17,7 @@ services:
   host:
     build: host
     ports:
-      - 8080:8080
+      - "8080:8080"
     volumes:
       - /Users/brendan/Projects/corefn/docker/host/corefn/manifest:/var/func/manifest
       - /var/run/docker.sock:/var/run/docker.sock

@@ -61,6 +61,13 @@ function mod.get_docker_port(container)
 end
 
 function mod.image_port(image)
+
+  local red = redis:new()
+  local red_ok, err = red:connect(redis_host_ip, 6379)
+  if not red_ok then
+    ngx.log(ngx.ERR, 'failed to connect to redis')
+  end
+
   -- avoid race condition
   lock_key = 'lock:' .. image
   lock, err = red:get(lock_key)
@@ -75,11 +82,7 @@ function mod.image_port(image)
     redis_host_ip = mod.lookup_host('redis')
   end
 
-  local red = redis:new()
-  local ok, err = red:connect(redis_host_ip, 6379)
-  if not ok then
-    ngx.log(ngx.ERR, 'failed to connect to redis')
-  else
+  if red_ok then
     container, err = red:get(image)
     if container then
       if container == ngx.null then
