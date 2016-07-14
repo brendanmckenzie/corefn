@@ -13,6 +13,63 @@ namespace CoreFn.Builder
         static void Log(string message)
             => Console.WriteLine(message);
 
+        public static void Main(string[] args)
+        {
+            var files = Directory.GetFiles(args[0], "*.dll");
+            var dest = Path.GetFullPath(args[1]);
+
+            Directory.CreateDirectory(dest);
+
+            var functions = files
+                // Filter out system
+                .Where(ent => !new[] { "CoreFn" }.Contains(Path.GetFileNameWithoutExtension(ent)))
+                // Load the assemblies
+                .Select(ent => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(ent)))
+                // Get their exported types
+                .SelectMany(ent => ent.ExportedTypes)
+                // List the methods
+                .SelectMany(ent => ent.GetRuntimeMethods())
+                // Find the ones with the ExportedFunction attribute
+                .Where(ent => ent.GetCustomAttribute<ExportedFunctionAttribute>() != null)
+                .Select((ent, index) => new FunctionInfo
+                {
+                    Type = ent.DeclaringType,
+                    Method = ent,
+                    Index = int.MaxValue - index,
+                    Parameters = ent.GetParameters().Select(p => new ParameterSummary { Name = p.Name, Type = p.ParameterType.Name })
+                });
+
+            if (!functions.Any())
+            {
+                throw new InvalidOperationException("No exported functions found");
+            }
+
+            var classStr = ProxyClass.Replace(
+                "$switch$",
+                string.Join(Environment.NewLine,
+                    functions.Select(ent =>
+                        $"{new string(' ', 16)}case {ent.Index}: {{ {ProcessMethodCall(ent.Method)}; }} break;"
+                    )
+                )
+            );
+            Console.WriteLine("Writing Proxy class");
+            File.WriteAllText(Path.Combine(dest, "Proxy.cs"), classStr);
+
+            Console.WriteLine("Writing Manifest");
+
+            var manifest = new Manifest
+            {
+                Functions = functions.Select(ent => new FunctionSummary
+                {
+                    Index = ent.Index,
+                    Name = $"{ent.Type.Name}.{ent.Method.Name}",
+                    Parameters = ent.Method.GetParameters().Select(p => new ParameterSummary { Name = p.Name, Type = p.ParameterType.Name })
+                }).ToArray()
+            };
+            File.WriteAllText(Path.Combine(dest, "manifest.json"), JsonConvert.SerializeObject(manifest));
+
+        }
+
         static string ProcessParameters(MethodInfo method)
         {
             var parameters = method.GetParameters();
@@ -51,61 +108,6 @@ namespace CoreFn.Builder
             {
                 return methodCall = $"var ret = {methodCall}; await callback(JsonConvert.SerializeObject(ret))";
             }
-        }
-
-        public static void Main(string[] args)
-        {
-            var files = Directory.GetFiles(args[0], "*.dll");
-            var dest = Path.GetFullPath(args[1]);
-
-            Directory.CreateDirectory(dest);
-
-            var functions = files
-                .Where(ent => !new[] { "CoreFn" }.Contains(Path.GetFileNameWithoutExtension(ent)))
-                .Select(ent => AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(ent)))
-                .SelectMany(ent => ent.ExportedTypes)
-                .SelectMany(ent => ent.GetRuntimeMethods())
-                .Where(ent => ent.GetCustomAttribute<ExportedFunctionAttribute>() != null)
-                .Select((ent, index) => new FunctionInfo
-                {
-                    Type = ent.DeclaringType,
-                    Method = ent,
-                    Index = int.MaxValue - index,
-                    Parameters = ent.GetParameters().Select(p => new ParameterSummary { Name = p.Name, Type = p.ParameterType.Name })
-                });
-
-            if (!functions.Any())
-            {
-                throw new InvalidOperationException("No exported functions found");
-            }
-
-            var classStr = ProxyClass.Replace(
-                "$switch$",
-                string.Join(Environment.NewLine,
-                    functions.Select(ent =>
-                        $"{new string(' ', 16)}case {ent.Index}: {{ {ProcessMethodCall(ent.Method)}; }} break;"
-                    )
-                )
-            );
-            Console.WriteLine("Writing Proxy class");
-            // Console.WriteLine(classStr);
-            // Console.WriteLine();
-            File.WriteAllText(Path.Combine(dest, "Proxy.cs"), classStr);
-
-            var manifest = new Manifest
-            {
-                Functions = functions.Select(ent => new FunctionSummary
-                {
-                    Index = ent.Index,
-                    Name = $"{ent.Type.Name}.{ent.Method.Name}",
-                    Parameters = ent.Method.GetParameters().Select(p => new ParameterSummary { Name = p.Name, Type = p.ParameterType.Name })
-                }).ToArray()
-            };
-            Console.WriteLine("Writing Manifest");
-            // Console.WriteLine(JsonConvert.SerializeObject(manifest, Formatting.Indented));
-            File.WriteAllText(Path.Combine(dest, "manifest.json"), JsonConvert.SerializeObject(manifest));
-
-            // TODO: write to files/directory
         }
 
         const string ProxyClass = @"
